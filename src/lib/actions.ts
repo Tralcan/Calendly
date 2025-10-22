@@ -23,11 +23,11 @@ export async function getAvailability(date: Date): Promise<BusySlot[]> {
     }
     const busySlotsData = await response.json();
     
-    // The API seems to return slots as {start, end}. We need to convert string dates to Date objects.
+    // The API seems to return slots as {inicio, fin}. We need to convert string dates to Date objects.
     if (Array.isArray(busySlotsData)) {
       return busySlotsData.map(slot => ({
-        start: new Date(slot.start),
-        end: new Date(slot.end),
+        start: new Date(slot.inicio),
+        end: new Date(slot.fin),
       }));
     }
     
