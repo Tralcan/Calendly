@@ -1,50 +1,42 @@
 'use server';
 
-import { add, set } from 'date-fns';
+import { add, set, startOfDay, endOfDay } from 'date-fns';
 import { z } from 'zod';
 import { suggestOptimalMeetingTimes, type SuggestOptimalMeetingTimesInput, type SuggestOptimalMeetingTimesOutput } from '@/ai/flows/suggest-optimal-meeting-times';
 
 import type { BookingDetails, BookingResponse, BusySlot } from './types';
 
-// Mock function to get busy times for a host
-// In a real app, this would fetch from a calendar API
+// Function to get busy times for a host from the actual API
 export async function getAvailability(date: Date): Promise<BusySlot[]> {
-  await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+  const startDate = startOfDay(date);
+  const endDate = endOfDay(date);
 
-  const dayOfWeek = date.getDay();
-  const dayOfMonth = date.getDate();
+  const url = new URL('https://n8n-x1g4.onrender.com/webhook/calendar-disponibilidad');
+  url.searchParams.append('start', startDate.toISOString());
+  url.searchParams.append('end', endDate.toISOString());
 
-  const busySlots: BusySlot[] = [];
+  try {
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      console.error('Error fetching availability:', response.statusText);
+      return [];
+    }
+    const busySlotsData = await response.json();
+    
+    // The API seems to return slots as {start, end}. We need to convert string dates to Date objects.
+    if (Array.isArray(busySlotsData)) {
+      return busySlotsData.map(slot => ({
+        start: new Date(slot.start),
+        end: new Date(slot.end),
+      }));
+    }
+    
+    return [];
 
-  // Static block for lunch
-  busySlots.push({
-    start: set(date, { hours: 12, minutes: 0, seconds: 0, milliseconds: 0 }),
-    end: set(date, { hours: 13, minutes: 0, seconds: 0, milliseconds: 0 }),
-  });
-
-  // Add some pseudo-random busy slots based on the day
-  if (dayOfWeek % 2 === 0) { // Even days of the week
-    busySlots.push({
-      start: set(date, { hours: 10, minutes: 0, seconds: 0, milliseconds: 0 }),
-      end: set(date, { hours: 11, minutes: 30, seconds: 0, milliseconds: 0 }),
-    });
+  } catch (error) {
+    console.error('Failed to fetch availability:', error);
+    return [];
   }
-
-  if (dayOfMonth % 3 === 0) {
-    busySlots.push({
-      start: set(date, { hours: 15, minutes: 0, seconds: 0, milliseconds: 0 }),
-      end: set(date, { hours: 16, minutes: 0, seconds: 0, milliseconds: 0 }),
-    });
-  }
-  
-  if (dayOfMonth % 5 === 0) {
-    busySlots.push({
-      start: set(date, { hours: 17, minutes: 30, seconds: 0, milliseconds: 0 }),
-      end: set(date, { hours: 18, minutes: 0, seconds: 0, milliseconds: 0 }),
-    });
-  }
-
-  return busySlots;
 }
 
 // Mock function to book a meeting
