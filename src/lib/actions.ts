@@ -1,6 +1,6 @@
 'use server';
 
-import { add, set, startOfDay, endOfDay } from 'date-fns';
+import { add, format, startOfDay, endOfDay } from 'date-fns';
 import { z } from 'zod';
 import { suggestOptimalMeetingTimes, type SuggestOptimalMeetingTimesInput, type SuggestOptimalMeetingTimesOutput } from '@/ai/flows/suggest-optimal-meeting-times';
 
@@ -23,7 +23,6 @@ export async function getAvailability(date: Date): Promise<BusySlot[]> {
     }
     const busySlotsData = await response.json();
     
-    // The API seems to return slots as {inicio, fin}. We need to convert string dates to Date objects.
     if (Array.isArray(busySlotsData)) {
       return busySlotsData.map(slot => ({
         start: new Date(slot.inicio),
@@ -39,11 +38,11 @@ export async function getAvailability(date: Date): Promise<BusySlot[]> {
   }
 }
 
-// Mock function to book a meeting
-// In a real app, this would call Google Calendar API and a booking management API
-export async function bookMeeting(data: BookingDetails): Promise<BookingResponse> {
+// Function to book a meeting using the provided API endpoint
+export async function bookMeeting(data: BookingDetails & { lastName: string }): Promise<BookingResponse> {
   const schema = z.object({
     name: z.string().min(2, 'El nombre es requerido'),
+    lastName: z.string().min(2, 'El apellido es requerido'),
     email: z.string().email('Email inválido'),
     time: z.date(),
     meetingType: z.enum(['30', '60']),
@@ -55,23 +54,53 @@ export async function bookMeeting(data: BookingDetails): Promise<BookingResponse
     return { success: false, message: 'Datos inválidos.' };
   }
 
-  console.log('Booking meeting with details:', data);
-  await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call delay
-
-  // Mock success/failure
-  if (data.name.toLowerCase() === 'error') {
-    return { success: false, message: 'Error simulado al crear la reunión.' };
-  }
-
-  return {
-    success: true,
-    message: '¡Reunión agendada con éxito!',
-    meetingLink: `https://meet.google.com/mock-${Math.random().toString(36).substring(2, 9)}`,
-    bookingDetails: {
-      name: data.name,
-      time: data.time,
-    },
+  const { name, lastName, email, time, meetingType } = validated.data;
+  const duration = parseInt(meetingType);
+  const endTime = add(time, { minutes: duration });
+  
+  const payload = {
+    nombre: name,
+    apellido: lastName,
+    Tipo: "Reunión trabajo",
+    duracion: duration,
+    inicio: format(time, "yyyy-MM-dd HH:mm"),
+    final: format(endTime, "yyyy-MM-dd HH:mm"),
+    email: email,
   };
+
+  try {
+    const response = await fetch('https://n8n-x1g4.onrender.com/webhook/565ef0e0-1768-42b8-8dde-543dba0f0879', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('API Error Response:', errorBody);
+      return { success: false, message: `Error del servidor: ${response.statusText}` };
+    }
+
+    // Assuming the API returns a success message and potentially a meeting link.
+    // We will create a mock one for now if not provided.
+    const responseData = await response.json();
+
+    return {
+      success: true,
+      message: '¡Reunión agendada con éxito!',
+      meetingLink: responseData.meetingLink || `https://meet.google.com/mock-${Math.random().toString(36).substring(2, 9)}`,
+      bookingDetails: {
+        name: data.name,
+        time: data.time,
+      },
+    };
+
+  } catch(error) {
+    console.error('Failed to book meeting:', error);
+    return { success: false, message: 'No se pudo agendar la reunión.' };
+  }
 }
 
 

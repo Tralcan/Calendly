@@ -24,6 +24,7 @@ import SmartSuggestions from "./smart-suggestions";
 
 const bookingSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres."),
+  lastName: z.string().min(2, "El apellido debe tener al menos 2 caracteres."),
   email: z.string().email("Por favor, introduce un email válido."),
   notes: z.string().optional(),
 });
@@ -44,7 +45,7 @@ export default function Scheduler() {
 
   const form = useForm<z.infer<typeof bookingSchema>>({
     resolver: zodResolver(bookingSchema),
-    defaultValues: { name: "", email: "", notes: "" },
+    defaultValues: { name: "", lastName: "", email: "", notes: "" },
   });
 
   const generateTimeSlots = (date: Date, busySlots: BusySlot[], duration: number): Date[] => {
@@ -188,10 +189,15 @@ export default function Scheduler() {
             Estás reservando para el {format(selectedTime, "eeee, d 'de' MMMM 'a las' HH:mm", { locale: es })}.
           </p>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem><FormLabel>Nombre completo</FormLabel><FormControl><Input placeholder="Tu nombre" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField control={form.control} name="name" render={({ field }) => (
+                  <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Tu nombre" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="lastName" render={({ field }) => (
+                  <FormItem><FormLabel>Apellido</FormLabel><FormControl><Input placeholder="Tu apellido" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
               <FormField control={form.control} name="email" render={({ field }) => (
                 <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="tu@email.com" {...field} /></FormControl><FormMessage /></FormItem>
               )} />

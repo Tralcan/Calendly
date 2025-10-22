@@ -5,6 +5,7 @@ export type BusySlot = {
 
 export type BookingDetails = {
   name: string;
+  lastName: string;
   email: string;
   time: Date;
   meetingType: "30" | "60";
