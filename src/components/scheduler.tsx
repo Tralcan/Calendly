@@ -229,8 +229,8 @@ export default function Scheduler() {
           <div>
             <h2 className="font-headline font-semibold text-xl mb-4">1. Selecciona el tipo y fecha</h2>
              <RadioGroup defaultValue="30" onValueChange={(value: "30" | "60") => setMeetingType(value)} className="flex items-center space-x-4 mb-4">
-                <div className="flex items-center space-x-2"><RadioGroupItem value="30" id="r1" /><Label htmlFor="r1">30 min</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="60" id="r2" /><Label htmlFor="r2">60 min</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="30" id="r1" /><Label htmlFor="r1">Reunión Corta</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="60" id="r2" /><Label htmlFor="r2">Reunión de Trabajo</Label></div>
             </RadioGroup>
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm flex justify-center">
               <Calendar
