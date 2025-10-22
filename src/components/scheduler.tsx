@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, set, startOfToday, eachMinuteOfInterval, isBefore, isAfter, areIntervalsOverlapping, addDays } from "date-fns";
+import { format, set, startOfToday, eachMinuteOfInterval, isBefore, isAfter, areIntervalsOverlapping, addDays, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { getAvailability, bookMeeting } from "@/lib/actions";
 import type { BusySlot, BookingResponse } from "@/lib/types";
@@ -52,17 +52,20 @@ export default function Scheduler() {
     const startOfDay = set(date, { hours: 9, minutes: 0, seconds: 0, milliseconds: 0 });
     const endOfDay = set(date, { hours: 18, minutes: 0, seconds: 0, milliseconds: 0 });
     const now = new Date();
-
+  
     const allSlots = eachMinuteOfInterval(
       { start: startOfDay, end: endOfDay },
       { step: 30 }
     );
-
+  
+    // Filter busy slots to only include those on the selected date
+    const todaysBusySlots = busySlots.filter(slot => isSameDay(slot.start, date));
+  
     return allSlots.filter((slotStart) => {
       const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
       if (isBefore(slotStart, now) || isAfter(slotEnd, endOfDay)) return false;
-
-      return !busySlots.some((busySlot) =>
+  
+      return !todaysBusySlots.some((busySlot) =>
         areIntervalsOverlapping(
           { start: slotStart, end: slotEnd },
           { start: busySlot.start, end: busySlot.end },
