@@ -13,9 +13,9 @@ export default function Home() {
             <Image
               src={logo.imageUrl}
               alt={logo.description}
-              width={150}
-              height={43}
-              className="rounded-lg"
+              width={75}
+              height={22}
+              className="rounded-lg border bg-card p-2 shadow-lg"
               data-ai-hint={logo.imageHint}
               priority
             />
