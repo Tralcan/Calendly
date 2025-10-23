@@ -53,7 +53,7 @@ export async function bookMeeting(data: BookingDetails & { lastName: string }): 
     return { success: false, message: 'Datos inválidos.' };
   }
 
-  const { name, lastName, email, time, meetingType } = validated.data;
+  const { name, lastName, email, time, meetingType, notes } = validated.data;
   const duration = parseInt(meetingType);
   const endTime = add(time, { minutes: duration });
   
@@ -65,6 +65,7 @@ export async function bookMeeting(data: BookingDetails & { lastName: string }): 
     inicio: format(time, "yyyy-MM-dd HH:mm"),
     final: format(endTime, "yyyy-MM-dd HH:mm"),
     email: email,
+    descripcion: notes,
   };
 
   try {
