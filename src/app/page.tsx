@@ -13,8 +13,8 @@ export default function Home() {
             <Image
               src={logo.imageUrl}
               alt={logo.description}
-              width={300}
-              height={86}
+              width={150}
+              height={43}
               className="rounded-lg"
               data-ai-hint={logo.imageHint}
               priority
