@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, set, startOfToday, eachMinuteOfInterval, isBefore, isAfter, areIntervalsOverlapping, addDays, getHours, getMinutes, getSeconds } from "date-fns";
+import { format, set, startOfToday, eachMinuteOfInterval, isBefore, isAfter, areIntervalsOverlapping, addDays, getHours, getMinutes, getSeconds, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { getAvailability, bookMeeting } from "@/lib/actions";
 import type { BusySlot, BookingResponse } from "@/lib/types";
@@ -31,125 +31,33 @@ const bookingSchema = z.object({
 
 type Step = "date" | "time" | "form" | "confirmed";
 
-export default function Scheduler() {
-  const [step, setStep] = useState<Step>("date");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedTime, setSelectedTime] = useState<Date | undefined>();
-  const [meetingType, setMeetingType] = useState<"30" | "60">("30");
-  const [availableSlots, setAvailableSlots] = useState<Date[]>([]);
-  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [debugBusySlots, setDebugBusySlots] = useState<BusySlot[] | null>(null);
-  const { toast } = useToast();
-  const today = startOfToday();
-
-  const form = useForm<z.infer<typeof bookingSchema>>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: { name: "", lastName: "", email: "", notes: "" },
-  });
-
-  const generateTimeSlots = (date: Date, busySlots: BusySlot[], duration: number): Date[] => {
-    const startOfDay = set(date, { hours: 9, minutes: 0, seconds: 0, milliseconds: 0 });
-    const endOfDay = set(date, { hours: 18, minutes: 0, seconds: 0, milliseconds: 0 });
-    const now = new Date();
-
-    const allSlots = eachMinuteOfInterval(
-      { start: startOfDay, end: endOfDay },
-      { step: 30 }
-    );
-
-    // Correct the date of the busy slots to match the selected date, using only the time from the API.
-    const correctedBusySlots = busySlots.map(slot => {
-        const busyStartDate = new Date(slot.start);
-        const busyEndDate = new Date(slot.end);
-        
-        const correctedStart = set(date, {
-            hours: getHours(busyStartDate),
-            minutes: getMinutes(busyStartDate),
-            seconds: getSeconds(busyStartDate),
-        });
-
-        const correctedEnd = set(date, {
-            hours: getHours(busyEndDate),
-            minutes: getMinutes(busyEndDate),
-            seconds: getSeconds(busyEndDate),
-        });
-
-        return { start: correctedStart, end: correctedEnd };
-    });
-
-    return allSlots.filter((slotStart) => {
-      const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
-      if (isBefore(slotStart, now) || isAfter(slotEnd, endOfDay)) return false;
-
-      return !correctedBusySlots.some((busySlot) =>
-        areIntervalsOverlapping(
-          { start: slotStart, end: slotEnd },
-          { start: busySlot.start, end: busySlot.end },
-          { inclusive: false }
-        )
-      );
-    });
-  };
-
-  useEffect(() => {
-    if (selectedDate) {
-      setIsLoadingSlots(true);
-      setDebugBusySlots(null);
-      getAvailability(selectedDate)
-        .then((busySlots) => {
-          setDebugBusySlots(busySlots);
-          const slots = generateTimeSlots(selectedDate, busySlots, parseInt(meetingType));
-          setAvailableSlots(slots);
-        })
-        .finally(() => setIsLoadingSlots(false));
-    }
-  }, [selectedDate, meetingType]);
-
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date);
-      setStep("time");
-    }
-  };
-
-  const handleSmartSuggestionSelect = (suggestion: Date) => {
-    handleDateSelect(suggestion);
-    setTimeout(() => handleTimeSelect(suggestion), 100); 
-  };
-
-  const handleTimeSelect = (time: Date) => {
-    setSelectedTime(time);
-    setStep("form");
-  };
-
-  const onSubmit = (data: z.infer<typeof bookingSchema>) => {
-    if (!selectedTime) return;
-    startTransition(async () => {
-      const response = await bookMeeting({ ...data, time: selectedTime, meetingType });
-      if (response.success) {
-        setBookingResponse(response);
-        setStep("confirmed");
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error en la reserva",
-          description: response.message,
-        });
-      }
-    });
-  };
-
-  const handleReset = () => {
-    setStep("date");
-    setSelectedDate(undefined);
-    setSelectedTime(undefined);
-    setBookingResponse(null);
-    form.reset();
-  };
-
-  const RightPanelContent = () => {
+const RightPanelContent = ({
+  step,
+  bookingResponse,
+  handleReset,
+  selectedDate,
+  isLoadingSlots,
+  availableSlots,
+  handleTimeSelect,
+  selectedTime,
+  setStep,
+  form,
+  onSubmit,
+  isPending
+}: {
+  step: Step;
+  bookingResponse: BookingResponse | null;
+  handleReset: () => void;
+  selectedDate: Date | undefined;
+  isLoadingSlots: boolean;
+  availableSlots: Date[];
+  handleTimeSelect: (time: Date) => void;
+  selectedTime: Date | undefined;
+  setStep: (step: Step) => void;
+  form: any;
+  onSubmit: (data: any) => void;
+  isPending: boolean;
+}) => {
     if (step === "confirmed" && bookingResponse?.bookingDetails) {
       return <BookingConfirmation bookingDetails={bookingResponse.bookingDetails} meetingLink={bookingResponse.meetingLink!} onReset={handleReset} />;
     }
@@ -239,6 +147,123 @@ export default function Scheduler() {
     return null;
   };
 
+export default function Scheduler() {
+  const [step, setStep] = useState<Step>("date");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedTime, setSelectedTime] = useState<Date | undefined>();
+  const [meetingType, setMeetingType] = useState<"30" | "60">("30");
+  const [availableSlots, setAvailableSlots] = useState<Date[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [debugBusySlots, setDebugBusySlots] = useState<BusySlot[] | null>(null);
+  const { toast } = useToast();
+  const today = startOfToday();
+
+  const form = useForm<z.infer<typeof bookingSchema>>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: { name: "", lastName: "", email: "", notes: "" },
+  });
+
+  const generateTimeSlots = (date: Date, busySlots: BusySlot[], duration: number): Date[] => {
+    const startOfDay = set(date, { hours: 9, minutes: 0, seconds: 0, milliseconds: 0 });
+    const endOfDay = set(date, { hours: 18, minutes: 0, seconds: 0, milliseconds: 0 });
+    const now = new Date();
+
+    const allSlots = eachMinuteOfInterval(
+      { start: startOfDay, end: endOfDay },
+      { step: 30 }
+    );
+
+    const correctedBusySlots = busySlots.map(slot => {
+        const busyStartDate = new Date(slot.start);
+        const busyEndDate = new Date(slot.end);
+        
+        const correctedStart = set(date, {
+            hours: getHours(busyStartDate),
+            minutes: getMinutes(busyStartDate),
+            seconds: getSeconds(busyStartDate),
+        });
+
+        const correctedEnd = set(date, {
+            hours: getHours(busyEndDate),
+            minutes: getMinutes(busyEndDate),
+            seconds: getSeconds(busyEndDate),
+        });
+
+        return { start: correctedStart, end: correctedEnd };
+    }).filter(slot => isSameDay(slot.start, date));
+
+    return allSlots.filter((slotStart) => {
+      const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
+      if (isBefore(slotStart, now) || isAfter(slotEnd, endOfDay)) return false;
+
+      return !correctedBusySlots.some((busySlot) =>
+        areIntervalsOverlapping(
+          { start: slotStart, end: slotEnd },
+          { start: busySlot.start, end: busySlot.end },
+          { inclusive: false }
+        )
+      );
+    });
+  };
+
+  useEffect(() => {
+    if (selectedDate) {
+      setIsLoadingSlots(true);
+      setDebugBusySlots(null);
+      getAvailability(selectedDate)
+        .then((busySlots) => {
+          setDebugBusySlots(busySlots);
+          const slots = generateTimeSlots(selectedDate, busySlots, parseInt(meetingType));
+          setAvailableSlots(slots);
+        })
+        .finally(() => setIsLoadingSlots(false));
+    }
+  }, [selectedDate, meetingType]);
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      setStep("time");
+    }
+  };
+
+  const handleSmartSuggestionSelect = (suggestion: Date) => {
+    handleDateSelect(suggestion);
+    setTimeout(() => handleTimeSelect(suggestion), 100); 
+  };
+
+  const handleTimeSelect = (time: Date) => {
+    setSelectedTime(time);
+    setStep("form");
+  };
+
+  const onSubmit = (data: z.infer<typeof bookingSchema>) => {
+    if (!selectedTime) return;
+    startTransition(async () => {
+      const response = await bookMeeting({ ...data, time: selectedTime, meetingType });
+      if (response.success) {
+        setBookingResponse(response);
+        setStep("confirmed");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error en la reserva",
+          description: response.message,
+        });
+      }
+    });
+  };
+
+  const handleReset = () => {
+    setStep("date");
+    setSelectedDate(undefined);
+    setSelectedTime(undefined);
+    setBookingResponse(null);
+    form.reset();
+  };
+
   return (
     <Card className="overflow-hidden shadow-lg">
       <CardHeader className="bg-muted/30 border-b">
@@ -268,11 +293,22 @@ export default function Scheduler() {
           </div>
         </div>
         <div className="border rounded-lg p-4 md:p-6 min-h-[300px] flex flex-col justify-center bg-card">
-           <RightPanelContent />
+           <RightPanelContent
+             step={step}
+             bookingResponse={bookingResponse}
+             handleReset={handleReset}
+             selectedDate={selectedDate}
+             isLoadingSlots={isLoadingSlots}
+             availableSlots={availableSlots}
+             handleTimeSelect={handleTimeSelect}
+             selectedTime={selectedTime}
+             setStep={setStep}
+             form={form}
+             onSubmit={onSubmit}
+             isPending={isPending}
+           />
         </div>
       </CardContent>
     </Card>
   );
 }
-
-    
