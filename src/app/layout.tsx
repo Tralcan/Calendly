@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Meeting Automator',
+  title: 'Agenda ThinkIT',
   description: 'Agenda reuniones de forma automática según la disponibilidad del anfitrión.',
 };
 

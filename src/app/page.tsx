@@ -21,7 +21,7 @@ export default function Home() {
           )}
           <div>
             <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground">
-              Meeting Automator
+              Agenda ThinkIT
             </h1>
             <p className="text-muted-foreground font-headline">Agenda tu próxima reunión</p>
           </div>
