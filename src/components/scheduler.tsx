@@ -59,7 +59,7 @@ export default function Scheduler() {
     );
   
     // Filter busy slots to only include those on the selected date
-    const todaysBusySlots = busySlots.filter(slot => isSameDay(slot.start, date));
+    const todaysBusySlots = busySlots.filter(slot => isSameDay(new Date(slot.start), date));
   
     return allSlots.filter((slotStart) => {
       const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
@@ -68,7 +68,7 @@ export default function Scheduler() {
       return !todaysBusySlots.some((busySlot) =>
         areIntervalsOverlapping(
           { start: slotStart, end: slotEnd },
-          { start: busySlot.start, end: busySlot.end },
+          { start: new Date(busySlot.start), end: new Date(busySlot.end) },
           { inclusive: false }
         )
       );
