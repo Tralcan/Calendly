@@ -16,13 +16,12 @@ export async function getAvailability(date: Date): Promise<BusySlot[]> {
   url.searchParams.append('end', endDate.toISOString());
 
   try {
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), { method: 'GET' });
     if (!response.ok) {
       console.error('Error fetching availability:', response.statusText);
       return [];
     }
     const busySlotsData = await response.json();
-    console.log('API Availability Response:', JSON.stringify(busySlotsData, null, 2));
     
     if (busySlotsData && Array.isArray(busySlotsData.disponibilidad)) {
       return busySlotsData.disponibilidad.map((slot: { inicio: string, fin: string }) => ({
