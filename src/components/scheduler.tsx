@@ -42,7 +42,7 @@ const RightPanelContent = ({
   setStep,
   form,
   onSubmit,
-  isPending
+  isPending,
 }: {
   step: Step;
   bookingResponse: BookingResponse | null;
@@ -167,12 +167,20 @@ export default function Scheduler() {
     const startOfDay = set(date, { hours: 9, minutes: 0, seconds: 0, milliseconds: 0 });
     const endOfDay = set(date, { hours: 18, minutes: 0, seconds: 0, milliseconds: 0 });
     const now = new Date();
-
+  
+    // Horarios de almuerzo a excluir
+    const lunchTime = [
+      { hours: 13, minutes: 0 },
+      { hours: 13, minutes: 30 },
+      { hours: 14, minutes: 0 },
+      { hours: 14, minutes: 30 },
+    ];
+  
     const allSlots = eachMinuteOfInterval(
       { start: startOfDay, end: endOfDay },
       { step: 30 }
     );
-
+  
     const correctedBusySlots = busySlots.map(slot => {
         const busyStartDate = new Date(slot.start);
         const busyEndDate = new Date(slot.end);
@@ -182,20 +190,26 @@ export default function Scheduler() {
             minutes: getMinutes(busyStartDate),
             seconds: getSeconds(busyStartDate),
         });
-
+  
         const correctedEnd = set(date, {
             hours: getHours(busyEndDate),
             minutes: getMinutes(busyEndDate),
             seconds: getSeconds(busyEndDate),
         });
-
+  
         return { start: correctedStart, end: correctedEnd };
     }).filter(slot => isSameDay(slot.start, date));
-
+  
     return allSlots.filter((slotStart) => {
       const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
       if (isBefore(slotStart, now) || isAfter(slotEnd, endOfDay)) return false;
-
+  
+      // Excluir si el slot de inicio cae en horario de almuerzo
+      const isLunchTime = lunchTime.some(
+        lt => getHours(slotStart) === lt.hours && getMinutes(slotStart) === lt.minutes
+      );
+      if (isLunchTime) return false;
+  
       return !correctedBusySlots.some((busySlot) =>
         areIntervalsOverlapping(
           { start: slotStart, end: slotEnd },
