@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, set, startOfToday, eachMinuteOfInterval, isBefore, isAfter, areIntervalsOverlapping, addDays, isSameDay } from "date-fns";
+import { format, set, startOfToday, eachMinuteOfInterval, isBefore, isAfter, areIntervalsOverlapping, addDays, getHours, getMinutes, getSeconds } from "date-fns";
 import { es } from "date-fns/locale";
 import { getAvailability, bookMeeting } from "@/lib/actions";
 import type { BusySlot, BookingResponse } from "@/lib/types";
@@ -53,22 +53,40 @@ export default function Scheduler() {
     const startOfDay = set(date, { hours: 9, minutes: 0, seconds: 0, milliseconds: 0 });
     const endOfDay = set(date, { hours: 18, minutes: 0, seconds: 0, milliseconds: 0 });
     const now = new Date();
-  
+
     const allSlots = eachMinuteOfInterval(
       { start: startOfDay, end: endOfDay },
       { step: 30 }
     );
-  
-    const todaysBusySlots = busySlots.filter(slot => isSameDay(new Date(slot.start), date));
-  
+
+    // Correct the date of the busy slots to match the selected date, using only the time from the API.
+    const correctedBusySlots = busySlots.map(slot => {
+        const busyStartDate = new Date(slot.start);
+        const busyEndDate = new Date(slot.end);
+        
+        const correctedStart = set(date, {
+            hours: getHours(busyStartDate),
+            minutes: getMinutes(busyStartDate),
+            seconds: getSeconds(busyStartDate),
+        });
+
+        const correctedEnd = set(date, {
+            hours: getHours(busyEndDate),
+            minutes: getMinutes(busyEndDate),
+            seconds: getSeconds(busyEndDate),
+        });
+
+        return { start: correctedStart, end: correctedEnd };
+    });
+
     return allSlots.filter((slotStart) => {
       const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
       if (isBefore(slotStart, now) || isAfter(slotEnd, endOfDay)) return false;
-  
-      return !todaysBusySlots.some((busySlot) =>
+
+      return !correctedBusySlots.some((busySlot) =>
         areIntervalsOverlapping(
           { start: slotStart, end: slotEnd },
-          { start: new Date(busySlot.start), end: new Date(busySlot.end) },
+          { start: busySlot.start, end: busySlot.end },
           { inclusive: false }
         )
       );
@@ -253,14 +271,6 @@ export default function Scheduler() {
            <RightPanelContent />
         </div>
       </CardContent>
-      {debugBusySlots && (
-        <div className="bg-muted p-4 border-t">
-          <h3 className="font-semibold text-sm">Respuesta de la API (Depuración):</h3>
-          <pre className="text-xs bg-gray-800 text-white p-2 rounded-md mt-2 overflow-auto max-h-40">
-            {JSON.stringify(debugBusySlots, null, 2)}
-          </pre>
-        </div>
-      )}
     </Card>
   );
 }
