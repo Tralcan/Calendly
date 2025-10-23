@@ -23,8 +23,8 @@ export async function getAvailability(date: Date): Promise<BusySlot[]> {
     }
     const busySlotsData = await response.json();
     
-    if (Array.isArray(busySlotsData)) {
-      return busySlotsData.map(slot => ({
+    if (busySlotsData && Array.isArray(busySlotsData.disponibilidad)) {
+      return busySlotsData.disponibilidad.map((slot: { inicio: string, fin: string }) => ({
         start: new Date(slot.inicio),
         end: new Date(slot.fin),
       }));
