@@ -2,7 +2,6 @@
 
 import { add, format, startOfDay, endOfDay } from 'date-fns';
 import { z } from 'zod';
-import { suggestOptimalMeetingTimes, type SuggestOptimalMeetingTimesInput, type SuggestOptimalMeetingTimesOutput } from '@/ai/flows/suggest-optimal-meeting-times';
 
 import type { BookingDetails, BookingResponse, BusySlot } from './types';
 
@@ -101,15 +100,4 @@ export async function bookMeeting(data: BookingDetails & { lastName: string }): 
     console.error('Failed to book meeting:', error);
     return { success: false, message: 'No se pudo agendar la reunión.' };
   }
-}
-
-
-export async function getSmartSuggestions(input: SuggestOptimalMeetingTimesInput): Promise<SuggestOptimalMeetingTimesOutput> {
-    try {
-        const suggestions = await suggestOptimalMeetingTimes(input);
-        return suggestions;
-    } catch (error) {
-        console.error("Error fetching smart suggestions:", error);
-        return [];
-    }
 }

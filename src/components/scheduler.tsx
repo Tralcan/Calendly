@@ -20,7 +20,6 @@ import BookingConfirmation from "./booking-confirmation";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { ArrowLeft, Clock, Calendar as CalendarIcon } from "lucide-react";
-import SmartSuggestions from "./smart-suggestions";
 
 const bookingSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres."),
@@ -229,11 +228,6 @@ export default function Scheduler() {
     }
   };
 
-  const handleSmartSuggestionSelect = (suggestion: Date) => {
-    handleDateSelect(suggestion);
-    setTimeout(() => handleTimeSelect(suggestion), 100); 
-  };
-
   const handleTimeSelect = (time: Date) => {
     setSelectedTime(time);
     setStep("form");
@@ -269,7 +263,6 @@ export default function Scheduler() {
       <CardHeader className="bg-muted/30 border-b">
          <div className="flex justify-between items-center">
             <CardTitle className="font-headline text-2xl">Agendar una reunión</CardTitle>
-            <SmartSuggestions onSuggestionSelect={handleSmartSuggestionSelect} />
          </div>
       </CardHeader>
       <CardContent className="grid md:grid-cols-2 gap-x-8 gap-y-6 p-4 md:p-6">
@@ -290,6 +283,12 @@ export default function Scheduler() {
                 className="p-3"
               />
             </div>
+            {debugBusySlots && (
+              <div className="mt-4 p-2 bg-slate-100 rounded text-xs text-slate-600">
+                <h3 className="font-bold">Debug: Busy Slots Received</h3>
+                <pre>{JSON.stringify(debugBusySlots, null, 2)}</pre>
+              </div>
+            )}
           </div>
         </div>
         <div className="border rounded-lg p-4 md:p-6 min-h-[300px] flex flex-col justify-center bg-card">
