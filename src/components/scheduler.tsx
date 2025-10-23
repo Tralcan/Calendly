@@ -40,6 +40,7 @@ export default function Scheduler() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [debugBusySlots, setDebugBusySlots] = useState<BusySlot[] | null>(null);
   const { toast } = useToast();
   const today = startOfToday();
 
@@ -58,7 +59,6 @@ export default function Scheduler() {
       { step: 30 }
     );
   
-    // Filter busy slots to only include those on the selected date
     const todaysBusySlots = busySlots.filter(slot => isSameDay(new Date(slot.start), date));
   
     return allSlots.filter((slotStart) => {
@@ -78,8 +78,10 @@ export default function Scheduler() {
   useEffect(() => {
     if (selectedDate) {
       setIsLoadingSlots(true);
+      setDebugBusySlots(null);
       getAvailability(selectedDate)
         .then((busySlots) => {
+          setDebugBusySlots(busySlots);
           const slots = generateTimeSlots(selectedDate, busySlots, parseInt(meetingType));
           setAvailableSlots(slots);
         })
@@ -251,6 +253,14 @@ export default function Scheduler() {
            <RightPanelContent />
         </div>
       </CardContent>
+      {debugBusySlots && (
+        <div className="bg-muted p-4 border-t">
+          <h3 className="font-semibold text-sm">Respuesta de la API (Depuración):</h3>
+          <pre className="text-xs bg-gray-800 text-white p-2 rounded-md mt-2 overflow-auto max-h-40">
+            {JSON.stringify(debugBusySlots, null, 2)}
+          </pre>
+        </div>
+      )}
     </Card>
   );
 }
