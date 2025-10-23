@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, set, startOfToday, eachMinuteOfInterval, isBefore, isAfter, areIntervalsOverlapping, addDays, getHours, getMinutes, getSeconds, isSameDay } from "date-fns";
+import { format, set, startOfToday, eachMinuteOfInterval, isBefore, isAfter, areIntervalsOverlapping, getHours, getMinutes, getSeconds, isSameDay, getDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { getAvailability, bookMeeting } from "@/lib/actions";
 import type { BusySlot, BookingResponse } from "@/lib/types";
@@ -155,7 +155,6 @@ export default function Scheduler() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [debugBusySlots, setDebugBusySlots] = useState<BusySlot[] | null>(null);
   const { toast } = useToast();
   const today = startOfToday();
 
@@ -210,10 +209,8 @@ export default function Scheduler() {
   useEffect(() => {
     if (selectedDate) {
       setIsLoadingSlots(true);
-      setDebugBusySlots(null);
       getAvailability(selectedDate)
         .then((busySlots) => {
-          setDebugBusySlots(busySlots);
           const slots = generateTimeSlots(selectedDate, busySlots, parseInt(meetingType));
           setAvailableSlots(slots);
         })
@@ -278,17 +275,11 @@ export default function Scheduler() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={handleDateSelect}
-                disabled={(date) => isBefore(date, today)}
+                disabled={(date) => isBefore(date, today) || getDay(date) === 0 || getDay(date) === 6}
                 locale={es}
                 className="p-3"
               />
             </div>
-            {debugBusySlots && (
-              <div className="mt-4 p-2 bg-slate-100 rounded text-xs text-slate-600">
-                <h3 className="font-bold">Debug: Busy Slots Received</h3>
-                <pre>{JSON.stringify(debugBusySlots, null, 2)}</pre>
-              </div>
-            )}
           </div>
         </div>
         <div className="border rounded-lg p-4 md:p-6 min-h-[300px] flex flex-col justify-center bg-card">
