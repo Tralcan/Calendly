@@ -1,6 +1,7 @@
 'use server';
 
-import { add, format, startOfDay, endOfDay } from 'date-fns';
+import { add, startOfDay, endOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { z } from 'zod';
 
 import type { BookingDetails, BookingResponse, BusySlot } from './types';
@@ -57,13 +58,17 @@ export async function bookMeeting(data: BookingDetails & { lastName: string }): 
   const duration = parseInt(meetingType);
   const endTime = add(time, { minutes: duration });
   
+  // Explicitly set the timezone to America/Santiago
+  const timeZone = 'America/Santiago';
+  const formatPattern = "yyyy-MM-dd HH:mm";
+
   const payload = {
     nombre: name,
     apellido: lastName,
     Tipo: "Reunión trabajo",
     duracion: duration,
-    inicio: format(time, "yyyy-MM-dd HH:mm"),
-    final: format(endTime, "yyyy-MM-dd HH:mm"),
+    inicio: formatInTimeZone(time, timeZone, formatPattern),
+    final: formatInTimeZone(endTime, timeZone, formatPattern),
     email: email,
     descripcion: notes,
   };
@@ -83,8 +88,6 @@ export async function bookMeeting(data: BookingDetails & { lastName: string }): 
       return { success: false, message: `Error del servidor: ${response.statusText}` };
     }
 
-    // Assuming the API returns a success message and potentially a meeting link.
-    // We will create a mock one for now if not provided.
     const responseData = await response.json();
 
     return {
