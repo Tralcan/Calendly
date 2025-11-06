@@ -60,7 +60,7 @@ export async function bookMeeting(data: BookingDetails & { lastName: string }): 
   
   // Explicitly set the timezone to America/Santiago
   const timeZone = 'America/Santiago';
-  const formatPattern = "yyyy-MM-dd HH:mm";
+  const formatPattern = "yyyy-MM-dd'T'HH:mm:ssXXX"; // ISO 8601 with timezone offset
 
   const payload = {
     nombre: name,
